@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>学习OS</title>
+<meta name="description" content="ADHD 考研学习操作系统">
+<meta name="theme-color" content="#F5F0E6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="学习OS">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="color-scheme" content="light dark">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='36' fill='%23F2F6F2'/><text x='96' y='114' text-anchor='middle' font-size='80'>🧠</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============================================================
+     LANDING PAGE
+     ============================================================ -->
+<div class="landing-page" id="landingPage" style="display:none;">
+  <div class="landing-inner" id="landingInner">
+    <h1 class="landing-title">你今天是什么心情？</h1>
+    <div class="landing-grid">
+      <button class="landing-mood-btn" data-signal="平静">
+        <span class="mood-geo"><span class="mood-icon">—</span></span>
+        <span class="mood-label">平静</span>
+      </button>
+      <button class="landing-mood-btn" data-signal="焦虑">
+        <span class="mood-geo"><span class="mood-icon">~</span></span>
+        <span class="mood-label">焦虑</span>
+      </button>
+      <button class="landing-mood-btn" data-signal="无聊">
+        <span class="mood-geo"><span class="mood-icon">&loz;</span></span>
+        <span class="mood-label">无聊</span>
+      </button>
+      <button class="landing-mood-btn" data-signal="疲惫">
+        <span class="mood-geo"><span class="mood-icon">&deg;</span></span>
+        <span class="mood-label">疲惫</span>
+      </button>
+      <button class="landing-mood-btn" data-signal="兴奋">
+        <span class="mood-geo"><span class="mood-icon">&uarr;</span></span>
+        <span class="mood-label">兴奋</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <!-- Top Row: Signal + Chain -->
+  <div class="top-row">
+    <div class="signal-bar" id="signalBar">
+      <div class="signal-label-row"><span class="label">信号</span><span class="signal-hint" id="signalHint">先读情绪，后选任务</span></div>
+      <div class="signal-options-row">
+        <div class="signal-option" data-signal="平静" onclick="App.setSignal('平静')">平静</div>
+        <div class="signal-option" data-signal="焦虑" onclick="App.setSignal('焦虑')">焦虑</div>
+        <div class="signal-option" data-signal="无聊" onclick="App.setSignal('无聊')">无聊</div>
+        <div class="signal-option" data-signal="疲惫" onclick="App.setSignal('疲惫')">疲惫</div>
+        <div class="signal-option" data-signal="兴奋" onclick="App.setSignal('兴奋')">兴奋</div>
+      </div>
+      <div class="signal-badges-row">
+        <span class="mode-badge" id="modeBadge" style="display:none;"></span>
+        <span class="target-badge" id="targetBadge" style="display:none;"></span>
+      </div>
+    </div>
+    <div class="chain-mini" id="chainMini" onclick="App.openDrawer('chain')">
+      <span class="label">链</span>
+      <div id="chainMiniDots" style="display:flex;gap:2px;"></div>
+      <span class="stat" id="chainMiniStat"></span>
+    </div>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-area" id="timerArea">
+    <div class="timer-ring" id="timerRing">
+      <svg viewBox="0 0 100 100">
+        <circle class="track" cx="50" cy="50" r="44"/>
+        <circle class="progress" id="timerProgress" cx="50" cy="50" r="44" stroke-dasharray="276.460" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-time" id="timerDisplay" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">50:00</div>
+    </div>
+    <div class="timer-card-ref empty" id="timerCardRef">选择今日卡片后开始</div>
+    <div class="timer-block-count" id="timerBlockCount">今日 0 块</div>
+    <div class="timer-buttons">
+      <button class="btn btn-primary" id="btnTimerMain" onclick="App.timerMainAction()">开始</button>
+      <button class="btn btn-ghost" id="btnTimerPause" onclick="App.timerPause()" style="display:none;">暂停</button>
+      <button class="btn btn-danger" id="btnTimerAbandon" onclick="App.timerAbandon()" style="display:none;">放弃</button>
+    </div>
+    <button class="skip-rest" id="btnSkipRest" onclick="App.skipRest()" style="display:none;">跳过休息 →</button>
+    <div id="blockGrade" style="display:none;margin-top:10px;gap:12px;align-items:center;">
+      <span style="font-size:11px;color:var(--text-muted);">标记此块：</span>
+      <button class="ttl-btn" onclick="App.gradeLastBlock('up')" style="font-size:12px;padding:5px 14px;">↑ 偏易</button>
+      <button class="ttl-btn" onclick="App.gradeLastBlock('mid')" style="font-size:12px;padding:5px 14px;">— 适中</button>
+      <button class="ttl-btn" onclick="App.gradeLastBlock('down')" style="font-size:12px;padding:5px 14px;">↓ 偏难</button>
+    </div>
+  </div>
+
+  <!-- Today Cards -->
+  <div class="today-section">
+    <div class="today-header">
+      <span class="title">今日区</span>
+      <span class="count" id="todayCount">0 / 3</span>
+    </div>
+    <div class="today-slots" id="todaySlots">
+      <div class="card-slot empty" onclick="App.showCardPicker(0)">+</div>
+      <div class="card-slot empty" onclick="App.showCardPicker(1)">+</div>
+      <div class="card-slot empty" onclick="App.showCardPicker(2)">+</div>
+    </div>
+    <div class="quick-stats" id="quickStats">
+      <div class="quick-stat">
+        <div class="qs-val" id="qsTodayBlocks">0</div>
+        <div class="qs-label">今日块</div>
+      </div>
+      <div class="quick-stat">
+        <div class="qs-val" id="qsWeekBlocks">-</div>
+        <div class="qs-label">本周</div>
+      </div>
+      <div class="quick-stat good">
+        <div class="qs-val" id="qsStreak">-</div>
+        <div class="qs-label">连续天数</div>
+      </div>
+    </div>
+    <div class="exposure-section" id="exposureSection">
+      <div class="exposure-header">
+        <span class="title">🎯 接触区</span>
+        <span class="hint" id="exposureHint">恐惧的渐进消解</span>
+      </div>
+      <div class="exposure-list" id="exposureList"></div>
+      <div class="exposure-empty" id="exposureEmpty">接触区为空 — 在任务池中将卡片移入接触区</div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar" id="bottomBar"></div>
+</div>
+
+<!-- ============================================================
+     OVERLAY
+     ============================================================ -->
+<div class="overlay" id="overlay" onclick="App.closeAll()"></div>
+
+<!-- ============================================================
+     DRAWER: Task Pool
+     ============================================================ -->
+<div class="drawer" id="drawerPool">
+  <div class="drawer-header">
+    <h2>任务池</h2>
+    <button class="drawer-close" onclick="App.closeAll()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="pool-filters" id="poolFilters"></div>
+    <div class="pool-cards" id="poolCards"></div>
+    <div class="pool-empty" id="poolEmpty">任务池为空 — 创建一张启动卡吧</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     DRAWER: Summary
+     ============================================================ -->
+<div class="drawer" id="drawerSummary">
+  <div class="drawer-header">
+    <h2>总结</h2>
+    <button class="drawer-close" onclick="App.closeAll()">✕</button>
+  </div>
+  <div class="drawer-body" id="summaryBody"></div>
+</div>
+
+<!-- ============================================================
+     DRAWER: Chain Full
+     ============================================================ -->
+<div class="drawer" id="drawerChain">
+  <div class="drawer-header">
+    <h2>链图</h2>
+    <button class="drawer-close" onclick="App.closeAll()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="chain-stats" id="chainStats"></div>
+    <div class="chain-full-grid" id="chainFullGrid"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     DRAWER: More
+     ============================================================ -->
+<div class="drawer" id="drawerMore">
+  <div class="drawer-header">
+    <h2>更多</h2>
+    <button class="drawer-close" onclick="App.closeAll()">✕</button>
+  </div>
+  <div class="drawer-body" style="display:flex;flex-direction:column;gap:6px;" id="moreMenu"></div>
+</div>
+
+<!-- ============================================================
+     FLOAT: Create Card
+     ============================================================ -->
+<div class="float-panel" id="floatCreateCard">
+  <h3>新启动卡</h3>
+  <div class="field">
+    <input type="text" id="createCardText" inputmode="text" placeholder="打开课本第87页" maxlength="25" oninput="App.onCreateTextChange()">
+    <div class="char-count" id="createCharCount">0 / 25</div>
+  </div>
+  <div class="field">
+    <label>科目</label>
+    <div class="subject-chips" id="createSubject"></div>
+  </div>
+  <div class="field">
+    <label>类型</label>
+    <div class="type-chips" id="createType"></div>
+  </div>
+  <div class="field">
+    <label>放入</label>
+    <div class="zone-chips" id="createZone"></div>
+  </div>
+  <div class="field" id="createExposureLevel" style="display:none;">
+    <label>接触等级</label>
+    <div class="level-chips" id="createLevel"></div>
+  </div>
+  <div class="sec-test" id="secTest">
+    闭眼想象自己正坐在书桌前看着这张卡。<br>你能在 10 秒内开始动吗？<br>
+    <div class="result" id="secTestResult"></div>
+  </div>
+  <div class="ban-hint" id="banHint"></div>
+  <div style="display:flex;gap:10px;margin-top:12px;">
+    <button class="btn btn-primary" id="btnCreateCard" onclick="App.doCreateCard()" style="flex:1;">创建</button>
+    <button class="btn btn-ghost" onclick="App.closeCreateCard()" style="flex:1;">取消</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     FLOAT: Card Picker (for today slots)
+     ============================================================ -->
+<div class="float-panel" id="floatCardPicker">
+  <h3>选卡放入今日区</h3>
+  <div class="pool-cards" id="pickerCards" style="max-height:300px;overflow-y:auto;"></div>
+  <div style="margin-top:10px;font-size:12px;color:var(--text-muted);">
+    或 <a href="#" onclick="App.closeAll();App.showCreateCard();return false;" style="color:var(--timer-accent);">创建新卡</a>
+  </div>
+  <div style="margin-top:10px;text-align:right;">
+    <button class="btn btn-ghost" onclick="App.closeAll()">取消</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     IMMERSIVE OVERLAY
+     ============================================================ -->
+<div class="immersive-overlay" id="immersiveOverlay">
+  <div class="immersive-ring-wrap" id="immersiveRingWrap">
+    <div class="immersive-ring">
+      <svg viewBox="0 0 100 100">
+        <circle class="track" cx="50" cy="50" r="44"/>
+        <circle class="progress" id="immersiveProgress" cx="50" cy="50" r="44" stroke-dasharray="276.460" stroke-dashoffset="0"/>
+      </svg>
+      <div class="immersive-time" id="immersiveTime">50:00</div>
+    </div>
+  </div>
+  <div class="immersive-card-ref" id="immersiveCardRef"></div>
+  <div class="immersive-buttons">
+    <button class="immersive-btn abandon" id="immersiveAbandon">放弃</button>
+    <button class="immersive-btn" id="immersivePause">暂停</button>
+    <button class="immersive-btn backup" id="immersiveBackup">后备卡</button>
+    <button class="immersive-btn parking" id="immersiveParking">停车场</button>
+  </div>
+</div>
+<div class="immersive-backup-panel" id="immersiveBackupPanel">
+  <div id="immersiveBackupList"></div>
+</div>
+<div class="immersive-parking-panel" id="immersiveParkingPanel">
+  <input type="text" id="immersiveParkingInput" inputmode="text" placeholder="记下脑子里冒出来的杂事..." autocomplete="off">
+  <button class="immersive-btn" id="immersiveParkingConfirm">确定</button>
+</div>
+
+<!-- ============================================================
+     CARD CONTEXT MENU
+     ============================================================ -->
+<div class="card-context-menu" id="cardContextMenu">
+  <button class="context-menu-item" onclick="const id=document.getElementById('cardContextMenu').dataset.cardId;App.markCardComplete(id)">
+    <span class="cmi-icon">✅</span> 标记完成
+  </button>
+  <button class="context-menu-item danger" onclick="const id=document.getElementById('cardContextMenu').dataset.cardId;App.deleteCard(id)">
+    <span class="cmi-icon">🗑</span> 删除
+  </button>
+</div>
+
+<!-- ============================================================
+     CONFIRM DIALOG
+     ============================================================ -->
+<div class="confirm-dialog-backdrop" id="confirmDialog">
+  <div class="confirm-dialog">
+    <div class="confirm-dialog-icon">⚠</div>
+    <h3 class="confirm-dialog-title" id="confirmDialogTitle"></h3>
+    <p class="confirm-dialog-msg" id="confirmDialogMsg"></p>
+    <div class="confirm-dialog-buttons">
+      <button class="btn btn-ghost" id="confirmDialogNo">取消</button>
+      <button class="btn btn-danger" id="confirmDialogYes">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TOAST CONTAINER
+     ============================================================ -->
+<div class="circadian-indicator" id="circadianIndicator" onclick="App.toggleDayNight()" title="切换日/夜间模式">
+  <span class="circadian-dot" id="circadianDot"></span><span id="circadianLabel">自动</span>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<input type="file" id="importFileInput" accept=".json" style="display:none;">
+
+<!-- ============================================================
+     FLOATING MINI WINDOW (background timer)
+     ============================================================ -->
+<div class="mini-window" id="miniWindow">
+  <div class="mini-sphere" id="miniSphere">
+    <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="26" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="3"/><circle cx="30" cy="30" r="26" fill="none" stroke="#6B9A80" stroke-width="3" stroke-dasharray="163.36" id="miniProgress" stroke-linecap="round" transform="rotate(-90 30 30)"/></svg>
+    <span class="mini-time" id="miniTime">50:00</span>
+  </div>
+  <div class="mini-expanded" id="miniExpanded">
+    <div class="mini-exp-time" id="miniExpTime">50:00</div>
+    <div class="mini-exp-task" id="miniExpTask"></div>
+    <button class="mini-exp-btn" onclick="App.returnFromMini()">回到计时</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     AUDIO (base64, short beep)
+     ============================================================ -->
+
+<script src="app.js"></script>
+
+</body>
+</html>

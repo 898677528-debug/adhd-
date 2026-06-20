@@ -1,0 +1,4 @@
+*.bak
+study-os-session-summary.md
+*-prompt.md
+.claude/
