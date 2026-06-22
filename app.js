@@ -1679,7 +1679,7 @@ const App = {
 
   showExposure() {
     this.closeAll();
-    const cards = Object.values(this.state.cards).filter(c => c.zone === 'exposure');
+    const entries = Object.entries(this.state.cards).filter(([,c]) => c.zone === 'exposure');
     const levels = [
       { l:0, label:'物理存在', eg:'坐在桌前，什么都不用做。就坐着。' },{ l:1, label:'拿出工具', eg:'把数学课本和草稿纸从书包里拿出来，放在桌上。' },
       { l:2, label:'打开浏览', eg:'翻开课本，看目录。读章节标题。不要求解答任何东西。' },{ l:3, label:'阅读观察', eg:'读一道例题及其解答。只看不写。理解它为什么这样解。' },
@@ -1695,17 +1695,17 @@ const App = {
     }
     html += '</div></details>';
 
-    if (cards.length === 0) {
+    if (entries.length === 0) {
       html += '<div class="pool-empty">接触区为空 — 为高抵触科目创建一张渐进暴露卡</div>';
     } else {
-      for (const c of cards) {
+      for (const [id, c] of entries) {
         const lv = c.level ?? 0, curLevel = levels.find(ll => ll.l === lv) || levels[0];
         html += `<div class="pool-card ${c.subject}" style="margin-bottom:8px;"><div class="pcard-text">${this.escapeHtml(c.text)}</div><div class="pcard-meta">${SUBJECT_NAMES[c.subject]} · ${curLevel.label}（Lv${lv}）</div><div style="margin-top:6px;display:flex;gap:3px;flex-wrap:wrap;">`;
         for (const ll of levels) {
           const sel = lv === ll.l;
-          html += `<button class="ttl-btn" style="${sel?'background:var(--timer-accent);color:#fff;font-weight:500;':''}font-size:10px;padding:3px 8px;" onclick="App.setExposureLevel('${c.id}',${ll.l})" title="${ll.label}: ${ll.eg}">L${ll.l} ${ll.label}</button>`;
+          html += `<button class="ttl-btn" style="${sel?'background:var(--timer-accent);color:#fff;font-weight:500;':''}font-size:10px;padding:3px 8px;" onclick="App.setExposureLevel('${id}',${ll.l})" title="${ll.label}: ${ll.eg}">L${ll.l} ${ll.label}</button>`;
         }
-        html += `</div><div style="margin-top:6px;display:flex;gap:6px;"><button class="ttl-btn" onclick="App.completeExposureCard('${c.id}');App.showExposure();">完成</button><button class="ttl-btn" onclick="App.deleteCard('${c.id}');App.showExposure();" style="color:#B8443A;">删除</button></div></div>`;
+        html += `</div><div style="margin-top:6px;display:flex;gap:6px;"><button class="ttl-btn" onclick="App.completeExposureCard('${id}');App.showExposure();">完成</button><button class="ttl-btn" onclick="App.deleteCard('${id}');App.showExposure();" style="color:#B8443A;">删除</button></div></div>`;
       }
     }
     html += `<button class="btn btn-primary" onclick="App.closeAll();App.showCreateCard();setTimeout(()=>document.querySelector('#createZone .chip[data-zone=exposure]').click(),100);" style="width:100%;margin-top:8px;">+ 添加接触卡</button>`;
@@ -2278,26 +2278,26 @@ const App = {
   },
 
   renderExposure() {
-    const cards = Object.values(this.state.cards).filter(c => c.zone === 'exposure');
+    const entries = Object.entries(this.state.cards).filter(([,c]) => c.zone === 'exposure');
     const list = document.getElementById('exposureList'), empty = document.getElementById('exposureEmpty');
     if (!list) return;
-    if (cards.length === 0) { list.innerHTML = ''; empty.style.display = ''; return; }
+    if (entries.length === 0) { list.innerHTML = ''; empty.style.display = ''; return; }
     empty.style.display = 'none';
 
     const levels = [{ l:0, label:'物理存在' },{ l:1, label:'拿出工具' },{ l:2, label:'打开浏览' },{ l:3, label:'阅读观察' },{ l:4, label:'抄写模仿' },{ l:5, label:'单题实战' },{ l:6, label:'正常输出' }];
     const subjCol = { math:'#5B9E8A', biochem:'#4A8C9E', english:'#5E9E4E', politics:'#8B7EB8' };
 
-    list.innerHTML = cards.map(c => {
+    list.innerHTML = entries.map(([id, c]) => {
       const lv = c.level ?? 0, color = subjCol[c.subject] || 'var(--border)';
       const dots = levels.map((ll, i) => `<span class="exp-lvl-dot ${i <= lv ? 'on' : 'off'}"></span>`).join('');
-      const onclick = `onclick="App.showExposureLevelPicker('${c.id}')"`;
+      const onclick = `onclick="App.showExposureLevelPicker('${id}')"`;
       return `<div class="exposure-item" style="border-left:3px solid ${color};">
         <span class="exp-dot" style="background:${subjCol[c.subject] || 'var(--text-muted)'};" ${onclick}></span>
         <span class="exp-text" title="${this.escapeHtml(c.text)}" ${onclick}>${this.escapeHtml(c.text)}</span>
         <span class="exp-level-row" ${onclick}>${dots}</span>
         <span class="exp-lvl-label" ${onclick}>Lv${lv} ${levels.find(ll => ll.l === lv)?.label || ''}</span>
-        <button class="exp-done-btn" onclick="event.stopPropagation();App.completeExposureCard('${c.id}')" title="完成">✓</button>
-        <button class="exp-delete-btn" onclick="event.stopPropagation();App.deleteCard('${c.id}')" title="删除">✕</button>
+        <button class="exp-done-btn" onclick="event.stopPropagation();App.completeExposureCard('${id}')" title="完成">✓</button>
+        <button class="exp-delete-btn" onclick="event.stopPropagation();App.deleteCard('${id}')" title="删除">✕</button>
       </div>`;
     }).join('');
   },
